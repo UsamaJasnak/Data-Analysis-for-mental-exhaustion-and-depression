@@ -1,0 +1,1203 @@
+---
+title: "Project STAT 5620"
+author: "Konstantin Zuev, Mohammed Usama Jasnak, Siqi Wang"
+date: "`r Sys.Date()`"
+output: pdf_document
+---
+
+```{r setup, include=FALSE}
+
+knitr::opts_chunk$set(echo=FALSE)
+rm(list=ls())
+
+```
+
+# Abstract
+
+Nowadays, Mental exhaustion and depression among medical students stand as a formidable challenge. This project explores the intricate relationships between empathy, mental health, and burnout among medical students, utilizing a cross-sectional dataset comprising of 887 medical students from the University of Lausanne from a study published in a medical journal in 2022 by Carrard et al. The project focuses on how variables such as age, gender, academic year, mental health, empathy, and burnout relate to depression (CES-D) and emotional exhaustion (MBI-Ex). The analysis involves using generalized linear models (GLMs) and generalized additive models (GAMs) to capture the relation among the explanatory and response variables. Key findings suggest a notable decrease in emotional exhaustion and depression symptoms with few variables. The study provides valuable insights into the mental health challenges faced by medical students.
+
+**Keywords:** Medical Students, Mental Health, Burnout, MBI Exhaustion, CES-D (Depression), Generalized Linear Models (GLMs), Generalized Additive Models (GAMs)
+
+# 1. Introduction
+
+Medical students often are under high levels of stress and pressure due their demanding curriculum and competitive environment. This leads to depression, anxiety, and burnout which not only affects students’ academic performance and professional development but also their overall well-being. Due to this, our project is focused on understanding the factors influencing depression and burnout among medical students at the University of Lausanne. We have used a cross-sectional design using a data set of 887 students from the University of Lausanne.
+
+Since we have concerns about mental well-being of the students, we will focus on and will address the following research questions:
+
+-   RQ1: What factors contributed to depression symptoms in students (`cesd`)?
+-   RQ2: Which students were more likely to feel emotionally overextended and exhausted (`mbi_ex`)?
+
+Together, with these research questions we will explore and find out how empathy, depression, social skills, academic factors and demographics intersect and extract meaningful insights which can be utilized to better support students.
+
+# 2. Project description
+
+## 2.1 Dataset
+
+-   **Name**: The relationship between medical students' empathy, mental health, and burnout
+
+-   **Source**: Carrard, V., Bourquin, C., Berney, S., Schlegel, K., Gaume, J., Bart, P.-A., Preisig, M., Schmid Mast, M., & Berney, A. (2022). Dataset for the paper "The relationship between medical students' empathy, mental health, and burnout: A cross-sectional study" published in Medical Teacher (2022) [Data set]. Zenodo. <https://doi.org/10.5281/zenodo.5702895>
+
+-   **Sampling**:
+
+    -   **Population**: medical students from curriculum years 1 – 6 (Faculty of Biology and Medicine at University of Lausanne & Lausanne University Hospital)
+    -   **Sampling method**: random sampling
+    -   **Sample size**: 887
+
+-   **Study design characteristics**:
+
+    -   **Study type**: cross-sectional
+    -   **Data collection method**: self-report questionnaires and an emotion recognition test
+
+-   **Data description**: this study included medical students from curriculum years 1 – 6. Dataset dimensions {rows, columns}: {886, 20}
+
+| Variable Name | Variable Label                       | Variable Scale                                                                                               |
+|------------------|------------------|-------------------------------------|
+| id            | Participants ID number               | nominal                                                                                                      |
+| age           | Age                                  | quantitative ratio                                                                                           |
+| year          | CURRICULUM YEAR                      | ordinal: 1=Bmed1; 2=Bmed2; 3=Bmed3; 4=Mmed1; 5=Mmed2; 6=Mmed3                                                |
+| sex           | GENDER                               | nominal: 1=Man; 2=Woman; 3=Non-binary                                                                        |
+| glang         | MOTHER TONGUE                        | nominal: 1=French; 15=German; 20=English; 37=Arab; ... ; 121=Other                                           |
+| part          | PARTNERSHIP STATUS                   | nominal: 0=No; 1=Yes                                                                                         |
+| job           | HAVING A JOB                         | nominal: 0=No; 1=Yes                                                                                         |
+| stud_h        | HOURS OF STUDY PER WEEK              | quantitative ratio                                                                                           |
+| health        | SATISFACTION WITH HEALTH             | ordinal: 1=Verydissatisfied; 2=Dissatisfied; 3=Neithersatisfiednordissatisfied; 4=Satisfied; 5=Verysatisfied |
+| psyt          | PSYCHOTHERAPY LAST YEAR              | nominal: 0=No; 1=Yes                                                                                         |
+| jspe          | JSPE total empathy score             | quantitative ratio                                                                                           |
+| qcae_cog      | QCAE Cognitive empathy score         | quantitative ratio                                                                                           |
+| qcae_aff      | QCAE Affective empathy score         | quantitative ratio                                                                                           |
+| amsp          | AMSP total score                     | quantitative ratio                                                                                           |
+| erec_mean     | GERT mean value of correct responses | quantitative ratio                                                                                           |
+| cesd          | CES-D total score                    | quantitative ratio                                                                                           |
+| stai_t        | STAI score                           | quantitative ratio                                                                                           |
+| mbi_ex        | MBI Emotional Exhaustion             | quantitative ratio                                                                                           |
+| mbi_cy        | MBI Cynicism                         | quantitative ratio                                                                                           |
+| mbi_ea        | MBI Academic Efficacy                | quantitative ratio                                                                                           |
+
+## 2.2 Foundational principles behind some key variables
+
+Given that half of these variables consist of scores or indices derived from various tests, so we will provide a brief explanation about them.
+
+**JSPE total empathy score:** the Jefferson Scale of Physician Empathy (JSPE) is a widely used instrument designed to measure empathy in healthcare professionals and students in the medical field. It was developed by researchers at the Center for Research in Medical Education and Health Care at the Sidney Kimmel Medical College of Thomas Jefferson University in Philadelphia. The scores range from 20 to 140 where high score indicates higher level of empathy [2].
+
+**QCAE Cognitive and Affective empathy score:** the QCAE (Questionnaire of Cognitive and Affective Empathy) is a tool used to measure both cognitive and affective empathy.
+
+The Cognitive Empathy score on the QCAE measures an individual's ability to understand and perceive others' emotions and thoughts wheras the Affective Empathy score on the QCAE measures an individual's ability to share and respond to others' emotions. Both Cognitive and Affective empathy score typically range between 0-80. There is no fixed threshold but higher the score mean higher empathy [3].
+
+**AMSP total score:** Ability to Modify Self-Presentation. This metric measures the ability to alter your behaviour in social situation [4].
+
+**GERT (Geneva Emotion Recognition Test):** GERT is a test which is used to assess an individual's ability to recognize emotions based on facial expressions. The score is calculated based on the number of correctly identified emotions from a set of facial expressions. The range of values can vary depending on the specific version of the test and how it's scored [5].
+
+**CES-D (Center for Epidemiological Studies Depression):** the Center for Epidemiological Studies-Depression (CES-D), originally published by Radloff in 1977, is a 20-item measure that asks caregivers to rate how often over the past week they experienced symptoms associated with depression, such as restless sleep, poor appetite, and feeling lonely. Response options range from 0 to 3 for each item (0 = Rarely or None of the Time, 1 = Some or Little of the Time, 2 = Moderately or Much of the time, 3 = Most or Almost All the Time). Scores range from 0 to 60, with high scores indicating greater depressive symptoms. The CES-D also provides cutoff scores (e.g., 16 or greater) that aid in identifying individuals at risk for clinical depression, with good sensitivity and specificity and high internal consistency [6].
+
+**STAI (State-Trait Anxiety Inventory):** the State-Trait Anxiety Inventory (STAI) is a widely used psychological test designed to measure both state anxiety and trait anxiety, which are two different components of anxiety. It is to diagnose anxiety and to distinguish it from depressive syndromes. (I could not find any definite cutoff or value scale online or using GPT so I didn't add it) [7].
+
+**Burnout (MBI Cynicism, MBI Emotional Exhaustion, MBI Academic Efficacy):**
+
+The Maslach Burnout Inventory (MBI) is a psychological assessment instrument pertaining to occupational burnout [8]. The metrics included in the paper are:
+
+-   **MBI Cynism:**
+
+    This scale measures the development of negative, cynical attitudes and feelings towards studies. It assesses the tendency to distance oneself emotionally from academic-related activities and interactions. The typical range of values of MBI-Cynicism are:
+
+    -   Low: scores typically range from 0 to 6.
+    -   Moderate: scores typically range from 7 to 12.
+    -   High: scores typically range from 13 and above.
+
+-   **MBI Exhaustion:**
+
+    This scale assesses feelings of being emotionally drained, depleted, and overwhelmed by one's work. The typical range of values of MBI Exhaustion are:
+
+    -   Low: scores typically range from 0 to 16.
+    -   Moderate: scores typically range from 17 to 20
+    -   High: scores typically range from 20 and above.
+
+-   **MBI Academic Efficacy:**
+
+    This scale measures feelings of competence and successful achievement in one's work. It is akin to the Personal Accomplishment scale. Lower scores correspond to greater experienced burnout.
+
+    -   Low: scores typically range from 15 and above.
+    -   Moderate: scores typically range from 15 to 25
+    -   High: scores typically range from 25 and above.
+
+# 3. EDA
+
+```{r Loading Libraries and Dataset}
+
+options(warn=-1)
+
+# Load necessary library
+suppressPackageStartupMessages(library(caret))
+suppressPackageStartupMessages(library(dplyr))
+suppressPackageStartupMessages(library(ggplot2))
+suppressPackageStartupMessages(library(tidyr))
+suppressPackageStartupMessages(library(ggfortify))
+suppressPackageStartupMessages(library(stats))
+suppressPackageStartupMessages(library(gridExtra))
+suppressPackageStartupMessages(library(ggfortify))
+suppressPackageStartupMessages(library(ggcorrplot))
+suppressPackageStartupMessages(library(lme4))
+suppressPackageStartupMessages(library(gamair))
+suppressPackageStartupMessages(library(mgcv))
+suppressPackageStartupMessages(library(mgcViz))
+suppressPackageStartupMessages(library(DHARMa))
+
+# Loading the dataset
+data <- read.csv(file = "Data.csv")
+
+```
+
+## 3.1 Univariate Analysis
+
+We start our EDA by producing a concise data quality report for both categorical and numeric variables. It is necessary for identifying the most obvious data issues that may need to be fixed right away, i.e. missing values, datatype issues etc.
+
+```{r Data Quality Report}
+columnQualityReport <- function(column, columnName) {
+  stats_df <- data.frame(Statistic = character(), Value = double(), stringsAsFactors = FALSE)
+  
+  if(is.numeric(column)) {
+    stats_df <- rbind(stats_df, data.frame(Statistic = "Missing", Value = sum(is.na(column))))
+    stats_df <- rbind(stats_df, data.frame(Statistic = "Unique Values", Value = length(unique(column))))
+    stats_df <- rbind(stats_df, data.frame(Statistic = "Mean", Value = round(mean(column, na.rm = TRUE), 2)))
+    stats_df <- rbind(stats_df, data.frame(Statistic = "Median", Value = round(median(column, na.rm = TRUE), 2)))
+    stats_df <- rbind(stats_df, data.frame(Statistic = "Std", Value = round(sd(column, na.rm = TRUE), 2)))
+    stats_df <- rbind(stats_df, data.frame(Statistic = "Minimum", Value = round(min(column, na.rm = TRUE), 2)))
+    stats_df <- rbind(stats_df, data.frame(Statistic = "Maximum", Value = round(max(column, na.rm = TRUE), 2)))
+    ul <- quantile(column, 0.75, na.rm = TRUE) + 1.5 * IQR(column, na.rm = TRUE)
+    ll <- quantile(column, 0.25, na.rm = TRUE) - 1.5 * IQR(column, na.rm = TRUE)
+  } else {
+    stats_df <- rbind(stats_df, data.frame(Statistic = "Missing", Value = sum(is.na(column))))
+    stats_df <- rbind(stats_df, data.frame(Statistic = "Unique Values", Value = length(unique(column))))
+  }
+  
+  # Add column name as an attribute
+  stats_df$Column <- columnName
+  
+  return(stats_df)
+}
+
+# Creating a list of dataframes for each column
+report_list <- lapply(names(data), function(colName) columnQualityReport(data[[colName]], colName))
+
+# Combine all column
+report_df <- do.call(rbind, report_list)
+report_df <- pivot_wider(report_df, names_from = Column, values_from = Value)
+rm(report_list)
+
+as.data.frame(t(as.data.frame(report_df)))
+```
+
+Based on this report, we can conclude the following:
+
+-   There are no missing values;
+-   In general, numeric variables are well-behaved, i.e. no variables that have extreme values, no negative values for strictly positive features.
+-   Variable `glnag` has a lot of unique categories that may require additional attention during the modelling stage.
+
+Before analysing how the target variables of interest (`mbi_ex` and `cesd`) interact with independent variables, it is important to visualise each variable on its own:
+
+```{r Univariate continuous, fig.width=15, fig.height=18}
+
+data$sex <- as.factor(data$sex)
+data$year <- as.factor(data$year)
+data$glang <- as.factor(data$glang)
+data$part <- as.factor(data$part)
+data$job <- as.factor(data$job)
+data$health <- as.factor(data$health)
+data$psyt <- as.factor(data$psyt)
+
+numeric_cols <- colnames(data)[sapply(data, is.numeric)][2:13]
+cat_cols <- setdiff(colnames(data)[2:ncol(data)], numeric_cols)
+
+plots_list <- list()
+
+for (col_name in numeric_cols) {
+  
+  # Boxplot
+  boxplot_plot <- suppressWarnings(ggplot(data, aes_string(x = col_name))) +
+    geom_boxplot() +
+    theme(axis.text.x = element_text(size = 13),
+          axis.text.y = element_text(size = 13),
+          axis.title.x = element_text(size = 13),
+          axis.title.y = element_text(size = 13))
+    
+  # Histogram
+  histogram_plot <- suppressWarnings(ggplot(data, aes_string(x = col_name))) + 
+    geom_histogram(position = "identity", alpha = 0.5, bins = 15) + 
+    theme(axis.text.x = element_text(size = 13),
+          axis.text.y = element_text(size = 13),
+          axis.title.x = element_text(size = 13),
+          axis.title.y = element_text(size = 13))
+
+  # Store the pair of plots in the list
+  plots_list[[length(plots_list) + 1]] <- list(boxplot_plot, histogram_plot)
+}
+
+# Arrange plots
+grid.arrange(grobs = do.call(c, plots_list), ncol = 4)
+
+```
+
+Unconditional distributions of our variables might not be particularly important. However, useful information can still be extracted: we have strictly positive, integer-valued (semi-continuous) variables, some are relatively normal, others are skewed. In this setting, when building statistical models, we may consider Poisson distribution due to the fact that variables are not truly continuous, Gamma distribution because of the skewness as well as non-negative nature of our data, and even Gaussian. The fact that we do not really have significant outliers is also evident.
+
+Of course, both the distribution of $Y|X$ and the impact of potential outliers on our model will have to be determined more rigorously during the model fitting stage.
+
+```{r Univariate discrete, fig.width=15, fig.height=10}
+
+plots_list <- list()
+
+for (col_name in cat_cols) {
+  
+  # Barplot
+  barplot_plot <- suppressWarnings(ggplot(data, aes_string(x = col_name))) +
+    geom_bar() +
+    theme(axis.text.x = element_text(size = 13),
+          axis.text.y = element_text(size = 13),
+          axis.title.x = element_text(size = 13),
+          axis.title.y = element_text(size = 13))
+
+  # Store the pair of plots in the list
+  plots_list[[length(plots_list) + 1]] <- list(barplot_plot)
+}
+
+# Arrange plots
+grid.arrange(grobs = do.call(c, plots_list), ncol = 3)
+
+```
+
+Based on the plots above, we can also confirm that some categorical variables are unbalanced, which may impact the analysis.
+
+## 3.2 Principal Component Analysis
+
+By using PCA we were able to map a high-dimensional space into fewer components (linear combinations).
+
+```{r PCA}
+
+# PCA
+numeric_data <- data[, !names(data) %in% cat_cols]
+pca_result <- prcomp(numeric_data, scale = TRUE)
+summary(pca_result)
+
+```
+
+We can see that each principal component explains a relatively low percentage of overall variance, suggesting that variables are not strongly correlated and that their ability to explain variance in data is limited.
+
+```{r PCA plots, fig.width=15, fig.height=10}
+
+plots_list <- list()
+
+for (col_name in cat_cols) {
+  
+  # Biplot
+  biplot <- autoplot(pca_result, data = data, loadings = TRUE, 
+                     color = col_name,
+                     loadings.colour = 'red', frame = FALSE,
+                     loadings.label = TRUE, loadings.label.size = 3)
+
+  # Store the pair of plots in the list
+  plots_list[[length(plots_list) + 1]] <- list(biplot)
+}
+
+# Arrange plots
+grid.arrange(grobs = do.call(c, plots_list), ncol = 3)
+
+```
+
+```{r PCA loadings}
+
+pca_result$rotation[, 1:2]
+
+```
+
+Producing biplots for the first two components and colouring them based on categorical features also doesn't show any clear patters. One exception is the plot 6 where the categorical variable of interest is `health`.
+
+Since the data was standardised, we can interpret loadings as correlations. PC1 was primarily defined by `cesd`, `stai_t`, `mbi_ex`, `mbi_cy`. All variables represented burnout, anxiety and depression and were negatively correlated, i.e. larger values of PC1, smaller values of the aforementioned variables.
+
+Plot 6 shows a more or less expected pattern: the higher the satisfaction with one's health is, the larger the value is for PC1 (less depression and anxiety).
+
+Before focusing on the target variables and their interactions with other features, a correlation matrix was created to explore linear relationships between variables.
+
+```{r Correlations, fig.width=7, fig.height=7}
+
+correlation_matrix <- cor(numeric_data)
+
+ggcorrplot(correlation_matrix, hc.order = TRUE,
+           type = "lower", lab = TRUE, lab_size = 2.5,
+           ggtheme = ggplot2::theme_gray,
+           colors = c("#00bfc4", "white", "#f8766d"))
+
+```
+
+Overall, it is evident that most variables do not exhibit strong linear relationships between each other. The maximum absolute value of the correlation coefficient is 0.72, between the target variable `cesd` and `stai_t`.
+
+## 3.3 Multivariate Analysis. MBI Exhaustion
+
+To capture the relationship between categorical variables and the target variable `mbi_ex`, a combination of boxplot, jitterplot and histogram was used. A histogram allows for assessing the distribution of a variable for a given category, a jitterplot helps in estimating the number of observations for each group and a boxplot provides more information with respect to potential outliers.
+
+```{r Multivariate wrt MBI Exhaustion (Categorical), fig.width=20, fig.height=5}
+
+for (col_name in cat_cols) {
+  
+  # Boxplot
+  boxplot_plot <- suppressWarnings(ggplot(data, aes_string(x = col_name, y = "mbi_ex", color = col_name))) +
+    geom_boxplot() +
+    labs(title = paste(col_name, "vs MBI Ex")) +
+    theme(axis.text.x = element_text(size = 15),
+      axis.text.y = element_text(size = 15),
+      axis.title.x = element_text(size = 15),
+      axis.title.y = element_text(size = 15))
+    
+  # Jitterplot
+  jitter_plot <- suppressWarnings(ggplot(data, aes_string(x = col_name, y = "mbi_ex", color = col_name))) +
+    geom_jitter(width = 0.2) +
+    labs(title = paste(col_name, "vs MBI Ex")) +
+    theme(axis.text.x = element_text(size = 15),
+      axis.text.y = element_text(size = 15),
+      axis.title.x = element_text(size = 15),
+      axis.title.y = element_text(size = 15))
+
+  # Histogram
+  histogram_plot <- suppressWarnings(ggplot(data, aes_string(x = "mbi_ex", fill = col_name))) + 
+    geom_histogram(position = "identity", alpha = 0.5, bins = 15) + 
+    facet_wrap(as.formula(paste("~", col_name))) +
+    labs(title = paste(col_name, "vs MBI Ex")) +
+    theme(axis.text.x = element_text(size = 15),
+      axis.text.y = element_text(size = 15),
+      axis.title.x = element_text(size = 15),
+      axis.title.y = element_text(size = 15))
+
+  # Arrange plots
+  grid.arrange(boxplot_plot, jitter_plot, histogram_plot, ncol = 3)
+}
+
+```
+
+Based on produced figures, the following can be concluded:
+
+-   Variable `year`(curriculum year) shows a decreasing trend in emotional exhaustion as students progress through their studies. Although the effect doesn't seem to be perfectly linear.
+-   Emotional exhaustion levels in women seem to be higher than in men. However, whether the difference is statistically significant or not will have to be investigated.
+-   The partnership status (`part`) and having a part-time job (`job`) don't seem to have any noticeable effect on emotional exhaustion.
+-   Variable `health` (satisfaction with health) has a similar patter as `year`. The more students are satisfied with their health, the lower the emotional exhaustion is.
+-   Lastly, students who had psychotherapy sessions `psyt` reported higher levels of emotional exhaustion.
+
+Scatterplots were drawn to analyse the relationship between continuous variables and `mbi_ex`.
+
+```{r Multivariate wrt MBI Exhaustion (Continuous), fig.width=15, fig.height=10}
+
+plots_list <- list()
+
+for (col_name in numeric_cols) {
+  
+  if (col_name != 'mbi_ex'){
+    plot <- suppressWarnings(ggplot(data, aes_string(x = col_name, y = "mbi_ex"))) +
+    geom_point() +  # Scatter plot
+    geom_smooth(formula = y ~ x, method = "gam", se = FALSE, color = "blue") +
+    geom_smooth(formula = y ~ x, method = "loess", se = FALSE, color = "red") +
+    labs(title = paste(col_name, "vs MBI Exhaustion")) +
+    theme(axis.text.x = element_text(size = 13),
+      axis.text.y = element_text(size = 13),
+      axis.title.x = element_text(size = 13),
+      axis.title.y = element_text(size = 13))
+  
+    plots_list[[length(plots_list) + 1]] <- list(plot)
+  }
+}
+
+# Arrange plots
+grid.arrange(grobs = do.call(c, plots_list), ncol = 3)
+
+```
+
+From the plots presented, we can conclude that:
+
+-   There are no strong non-linear patterns.
+-   In most cases, slopes are relatively gradual. Sometimes even visually flat: `erec_mean` or `qcae_cog`.
+-   Variable `age` also seems to be significantly affected by a single observation (a student who was 49 years old).
+
+```{r Correlations - MBI Exhaustion}
+
+col_names <- numeric_cols[numeric_cols != 'mbi_ex']
+pearson_results <- list()
+spearman_results <- list()
+
+for (col_name in col_names) {
+  
+    pearson_correlation <- round(cor(data[["mbi_ex"]], data[[col_name]], method = "pearson", use = "complete.obs"), 3)
+    spearman_correlation <- round(cor(data[["mbi_ex"]], data[[col_name]], method = "spearman", use = "complete.obs"), 3)
+    
+    # Store results in lists
+    pearson_results[[col_name]] <- pearson_correlation
+    spearman_results[[col_name]] <- spearman_correlation
+}
+
+# Convert lists to dataframe
+result_df <- data.frame(
+    Column_name = names(pearson_results),
+    Pearson_correlation = unlist(pearson_results),
+    Spearman_correlation = unlist(spearman_results)
+)
+
+rownames(result_df) <- NULL
+print(result_df[order(result_df$Pearson_correlation), ])
+
+```
+
+Analysing correlation coefficients, we can find support for the conclusions made based on scatterplots. Spearman correlation coefficients were calculated to account for potential non-linear relationships, but they barely diverged from Pearson coefficients.
+
+Lastly, we fitted analysis of variance models and conducted Kruskal-Wallis rank sum tests to complement our visual analysis of categorical variables.
+
+```{r Basic Hypothesis Testing - MBI Exhaustion}
+
+anova_pvalues <- c()
+kruskal_pvalues <- c()
+
+for (var_name in cat_cols) {
+  
+  # ANOVA
+  anova_result <- summary(aov(mbi_ex ~ factor(data[[var_name]]), data = data))
+  anova_pvalue <- round(anova_result[[1]]$Pr[[1]], 4)
+  
+  # Kruskal-Wallis Test
+  kruskal_result <- kruskal.test(mbi_ex ~ factor(data[[var_name]]), data = data)
+  kruskal_pvalue <- round(kruskal_result$p.value, 4)
+  
+  # Append p-values
+  anova_pvalues <- c(anova_pvalues, anova_pvalue)
+  kruskal_pvalues <- c(kruskal_pvalues, kruskal_pvalue)
+}
+
+# Create dataframe
+result_df <- data.frame(
+  Variable = cat_cols,
+  ANOVA_p_value = anova_pvalues,
+  Kruskal_p_value = kruskal_pvalues
+)
+
+print(result_df)
+
+```
+
+As expected, `glan` and `part` were not significant, while `job` was significant at the level of $\alpha = 0.1$.
+
+## 3.4 Multivariate Analysis. CESD
+
+```{r Multivariate wrt CESD (Categorical), fig.width=20, fig.height=5}
+
+for (col_name in cat_cols) {
+  
+  # Boxplot
+  boxplot_plot <- suppressWarnings(ggplot(data, aes_string(x = col_name, y = "cesd", color = col_name))) +
+    geom_boxplot() +
+    labs(title = paste(col_name, "vs CESD")) +
+    theme(axis.text.x = element_text(size = 15),
+      axis.text.y = element_text(size = 15),
+      axis.title.x = element_text(size = 15),
+      axis.title.y = element_text(size = 15))
+    
+  # Jitterplot
+  jitter_plot <- suppressWarnings(ggplot(data, aes_string(x = col_name, y = "cesd", color = col_name))) +
+    geom_jitter(width = 0.2) +
+    labs(title = paste(col_name, "vs CESD")) +
+    theme(axis.text.x = element_text(size = 15),
+      axis.text.y = element_text(size = 15),
+      axis.title.x = element_text(size = 15),
+      axis.title.y = element_text(size = 15))
+
+  # Histogram
+  histogram_plot <- suppressWarnings(ggplot(data, aes_string(x = "cesd", fill = col_name))) + 
+    geom_histogram(position = "identity", alpha = 0.5, bins = 15) + 
+    facet_wrap(as.formula(paste("~", col_name))) +
+    labs(title = paste(col_name, "vs CESD")) +
+    theme(axis.text.x = element_text(size = 15),
+      axis.text.y = element_text(size = 15),
+      axis.title.x = element_text(size = 15),
+      axis.title.y = element_text(size = 15))
+
+  # Arrange plots
+  grid.arrange(boxplot_plot, jitter_plot, histogram_plot, ncol = 3)
+}
+
+```
+
+Based on produced figures, the following can be concluded:
+
+-   Variable `year`(curriculum year) shows a decreasing trend in CESD (Center for Epidemiologic Studies Depression Scale) as students progress through their studies. The effect seems to be linear.
+-   CESD in women seem to be higher than in men. However, whether the difference is statistically significant or not will have to be investigated.
+-   The partnership status `part` and having a part-time job `job` don't seem to have any noticeable effect on CESD (although it could be statistically significant).
+-   Except for Level 1 (students who were very dissatisfied with their health), CESD decreases linearly as health satisfaction increases.
+-   Lastly, students who had psychotherapy sessions `psyt` reported higher levels of CESD.
+
+Scatterplots were drawn to analyse the relationship between continuous variables and `cesd`.
+
+```{r Multivariate wrt CESD (Continuous), fig.width=15, fig.height=10}
+
+plots_list <- list()
+
+for (col_name in numeric_cols) {
+  
+  if (col_name != 'cesd'){
+  plot <- suppressWarnings(ggplot(data, aes_string(x = col_name, y = "cesd"))) +
+    geom_point() +  # Scatter plot
+    geom_smooth(formula = y ~ x, method = "gam", se = FALSE, color = "blue") +
+    geom_smooth(formula = y ~ x, method = "loess", se = FALSE, color = "red") +
+    labs(title = paste(col_name, "vs CESD")) +
+    theme(axis.text.x = element_text(size = 13),
+      axis.text.y = element_text(size = 13),
+      axis.title.x = element_text(size = 13),
+      axis.title.y = element_text(size = 13))
+  
+    plots_list[[length(plots_list) + 1]] <- list(plot)
+  }
+}
+
+# Arrange plots
+grid.arrange(grobs = do.call(c, plots_list), ncol = 3)
+
+```
+
+From the plots presented, we can conclude that:
+
+-   Although most trends appear to be linear, some variables exhibit signs of non-linear patterns.
+-   In many cases, slopes are relatively gradual. Sometimes even visually flat: `erec_mean` or `qcae_cog`.
+-   `stai-t`, `mbi_ea`, `mbi_ex` have relatively strong relationships with `cesd`.
+
+```{r Correlations - CESD}
+
+col_names <- numeric_cols[numeric_cols != 'cesd']
+pearson_results <- list()
+spearman_results <- list()
+
+for (col_name in col_names) {
+  
+    pearson_correlation <- round(cor(data[["cesd"]], data[[col_name]], method = "pearson", use = "complete.obs"), 3)
+    spearman_correlation <- round(cor(data[["cesd"]], data[[col_name]], method = "spearman", use = "complete.obs"), 3)
+    
+    # Store results in lists
+    pearson_results[[col_name]] <- pearson_correlation
+    spearman_results[[col_name]] <- spearman_correlation
+}
+
+# Convert lists to dataframe
+result_df <- data.frame(
+    Column_name = names(pearson_results),
+    Pearson_correlation = unlist(pearson_results),
+    Spearman_correlation = unlist(spearman_results)
+)
+
+rownames(result_df) <- NULL
+print(result_df)
+
+```
+
+Analysing correlation coefficients, we can find support for the conclusions made based on scatterplots. Spearman correlation coefficients were calculated to account for potential non-linear monotonous relationships, but they barely diverged from Pearson coefficients.
+
+Lastly, we fitted analysis of variance models and conducted Kruskal-Wallis rank sum tests to complement our visual analysis of categorical variables.
+
+```{r Basic Hypothesis Testing - CESD}
+
+anova_pvalues <- c()
+kruskal_pvalues <- c()
+
+for (var_name in cat_cols) {
+  
+  # ANOVA
+  anova_result <- summary(aov(cesd ~ factor(data[[var_name]]), data = data))
+  anova_pvalue <- round(anova_result[[1]]$Pr[[1]], 4)
+  
+  # Kruskal-Wallis Test
+  kruskal_result <- kruskal.test(cesd ~ factor(data[[var_name]]), data = data)
+  kruskal_pvalue <- round(kruskal_result$p.value, 4)
+  
+  # Append p-values
+  anova_pvalues <- c(anova_pvalues, anova_pvalue)
+  kruskal_pvalues <- c(kruskal_pvalues, kruskal_pvalue)
+}
+
+# Create dataframe
+result_df <- data.frame(
+  Variable = cat_cols,
+  ANOVA_p_value = anova_pvalues,
+  Kruskal_p_value = kruskal_pvalues
+)
+
+print(result_df)
+
+```
+
+Compared to `mbi_ex`, p-values for non-significant variables were considerably lower. At the level of $\alpha = 0.05$, both `glang` and `job` were not statistically significant.
+
+# 4. Methods
+
+We broke down the model fitting process in the following steps:
+
+-   Discussing theoretical assumptions for choosing an appropriate distribution (Gaussian / Poisson / etc.).
+-   Testing in practice how those theoretical assumptions work by fitting different models.
+-   Removing uninformative variables.
+-   Dealing with `glan` variable as it has a lot of unbalanced levels: using mixed models, merging categories and treating this new variable as fixed.
+-   Interpreting final models.
+
+One thing to keep in mind is that every step is interconnected. For example, choosing a distribution can effect what variables are important. But at the same time, dropping some variables may influence how well a model will work under a given distribution. Thus, there is no perfect solution unless you grid search every possible combination which is probably not very feasible. Thus, even though we defined a sequence of steps for building models, we still tried to be flexible in our approach. For example, when selecting a distribution we used AIC-based variable selection as a quick test of model stability, which was done by comparing residuals before and after using `step()` function for a given distribution.
+
+Note, model assumptions and limitations will be discussed separately in the proceeding chapters for each target variable of interest.
+
+# 5. Analysis and results
+
+## 5.1 Analysis. MBI Exhaustion
+
+After conducting EDA, it became evident that for `mbi_ex` there weren't any complex non-linear patterns that we could model with GAMs. We also did not have any spatio-temporal data making spatial and spatio-temporal GLMMs unnecessary. In light of that, we decided to consider GLMs and GLMMs to account for potentially having non-normal distribution of the response variable and also efficiently control for `glang` variable with a large number of unbalanced categories.
+
+### (a) Distribution considerations. Theoretical assumptions
+
+Variable `mbi_ex`:
+
+-   Integer-valued and bounded between 5 and 30.
+-   26 unique values.
+-   The mean value is equal to 16.9 and median to 17.
+-   The standard deviation is 5.3.
+-   Unconditional distribution of `mbi_ex`:
+
+```{r MBI Exhaustion histrogram, fig.width=10, fig.height=6}
+
+ggplot(data, aes(x = mbi_ex)) +
+  geom_histogram(binwidth = 1) +
+  labs(title = paste("Number of unique values:", length(unique(data$mbi_ex)))) +
+  xlab("mbi_ex") +
+  ylab("Count")
+
+```
+
+As a result, we have to consider what distributions are going to be appropriate for modelling this variable.
+
+-   Negative binomial distribution is the first that come to mind. Although it is frequently used specifically for count data, it can be a good fit in case of integer-valued variables. Also, since we have no reasons to believe that $\mu=\sigma^2$, Poisson distribution seems less reasonable. However, since this variable does not allow zeros, using either negative binomial or Poisson distribution could be problematic.
+-   Gaussian distribution may also be appropriate. Normal data is continuous and unbounded. However, if we have a relatively large number of distinct values (26 integers for `mbi_ex`), observations are not concentrated around extreme values, then it is possible to have a distribution that will be approximated by a normal one to a sufficient degree. Remember, all models are wrong but some are useful.
+
+Let's create 12 normally distributed samples with the mean and standard deviation of `mbi_ex`, convert values to integers and plot histograms:
+
+```{r Normal to discrete, fig.width=10, fig.height=10}
+
+plot_with_unique_values <- function(data) {
+  # Generate data
+  a <- round(rnorm(500, mean(data$mbi_ex), sd(data$mbi_ex)), 0)
+  df <- data.frame(a)
+  
+  # Plot
+  p <- ggplot(df, aes(x = a)) +
+    geom_histogram(binwidth = 1) +
+    labs(title = paste("Number of unique values:", length(unique(a)))) +
+    xlab("X") +
+    ylab("Count")
+  
+  return(p)
+}
+
+# Generate 10 plots
+plots <- lapply(1:12, function(x) plot_with_unique_values(data))
+
+# Arrange the plots in a grid
+library(gridExtra)
+grid.arrange(grobs = plots, ncol = 3)
+
+```
+
+It can be seen that in this experiment using a normal distribution for approximating those samples would work well enough. Of course, under the hood samples are in fact normal, but the key point is that even after converting them to integers (if some reasonable assumptions hold), using a normal distribution would work.
+
+Of course, it doesn't definitely prove anything, and in fact for model building we are interested in $Y|X$\~$N(\mu, \sigma^2)$ and not $Y$, but the core idea is that we should not ignore Gaussian distribution right away even if data characteristics do not seem to be suitable.
+
+-   Lastly, the most important argument for or against a certain distribution is model results. Thus, trying out different options and analysing residuals to assess how well a given model fits the data will be the ultimate reason why a specific distribution is chosen.
+
+### (b) Distribution considerations. Testing assumptions
+
+For assessing how well models fits the data, we primarily relied on residual analysis:
+
+-   For a linear regression with a constant variance and the identity link we have a very natural way of defining raw residuals $\varepsilon_i=y_i-X\beta$ via additive decomposition. For GLMs, in general, we lose the property of constant variance, and the relationship between $X\beta$ and $\mu$ becomes non-linear – no additive decomposing is possible. Thus, we cannot simply search for a lack of patterns in raw residuals anymore. That is why we need other methods like deviance residuals to analyse the results.
+-   A simulated-based approach (parametric bootstrapping) can be another great tool for producing interpretable residuals by taking the value of empirical CDF for each observation. Here CDF is produced from simulated data from the fitted model assuming that the model is correct. To do so, we used DHARMa residuals.
+
+So, first, we fitted two GLMs with negative binomial distribution:
+
+-   Model with all variables included except `glang`:
+
+```{r MBI Exhaustion NB}
+
+# Theta is very large: NB => Poisson
+
+var_names <- names(data)
+columns_to_exclude <- c("mbi_ex", "id", "glang")
+var_names <- var_names[!var_names %in% columns_to_exclude]
+
+glm_nb <- suppressWarnings(MASS::glm.nb(
+              mbi_ex ~ age + stud_h + 
+              year + sex + part + job + health + psyt + 
+              jspe + qcae_cog + qcae_aff + amsp + erec_mean + 
+              cesd + stai_t + 
+              mbi_cy + mbi_ea , data = data))
+
+summary(glm_nb)
+
+```
+
+```{r MBI Exhaustion NB residuals, fig.width=10, fig.height=5}
+
+glm_nb_dharma <- simulateResiduals(glm_nb, plot = TRUE)
+autoplot(glm_nb, which = 1:4, label.size = 3)
+
+```
+
+-   Model after using `step()` function:
+
+```{r MBI Exhaustion NB residuals after step, fig.width=10, fig.height=5}
+
+glm_nb_step <- suppressWarnings(step(glm_nb, trace=0))
+glm_nb_step_dharma <- simulateResiduals(glm_nb_step, plot = TRUE)
+autoplot(glm_nb_step, which = 1:4, label.size = 3)
+
+```
+
+```{r MBI Exhaustion NB residuals against each predictor, fig.width=10, fig.height=10}
+
+par(mfrow = c(4,3))
+plotResiduals(glm_nb_step, data$age)
+plotResiduals(glm_nb_step, data$stud_h)
+
+plotResiduals(glm_nb_step, data$qcae_aff)
+plotResiduals(glm_nb_step, data$amsp)
+plotResiduals(glm_nb_step, data$cesd)
+plotResiduals(glm_nb_step, data$stai_t)
+
+plotResiduals(glm_nb_step, data$mbi_cy)
+plotResiduals(glm_nb_step, data$mbi_ea)
+
+plotResiduals(glm_nb_step, data$year)
+plotResiduals(glm_nb_step, data$part)
+plotResiduals(glm_nb_step, data$health)
+
+```
+
+At this stage we were more interested in preliminary results of how well a given distribution worked for our data (no in-depth analysis of selected variables or attempts to interpret them).
+
+We then fitted two GLMs with Gaussian distribution, i.e. linear regression models:
+
+-   Model with all variables included except `glang`:
+
+```{r MBI Exhaustion LM}
+
+lm <- glm(mbi_ex ~ age + stud_h + 
+          year + sex + part + job + health + psyt + 
+          jspe + qcae_cog + qcae_aff + amsp + erec_mean + 
+          cesd + stai_t + 
+          mbi_cy + mbi_ea, family = gaussian, data = data)
+
+summary(lm)
+
+```
+
+```{r MBI Exhaustion LM residuals, fig.width=10, fig.height=5}
+
+lm_dharma <- simulateResiduals(lm, plot = TRUE)
+autoplot(lm, which = 1:4, label.size = 3)
+
+```
+
+-   Model after using `step()` function:
+
+```{r MBI Exhaustion LM residuals after stepr, fig.width=10, fig.height=5}
+
+lm_step <- step(lm, trace=0)
+lm_step_dharma <- simulateResiduals(lm_step, plot = TRUE)
+autoplot(lm_step, which = 1:4, label.size = 3)
+
+```
+
+```{r MBI Exhaustion LM residuals against each predictor, fig.width=10, fig.height=10}
+
+par(mfrow = c(4,3))
+plotResiduals(lm_step, data$age)
+plotResiduals(lm_step, data$stud_h)
+
+plotResiduals(lm_step, data$qcae_aff)
+plotResiduals(lm_step, data$amsp)
+plotResiduals(lm_step, data$cesd)
+plotResiduals(lm_step, data$stai_t)
+
+plotResiduals(lm_step, data$mbi_cy)
+plotResiduals(lm_step, data$mbi_ea)
+
+plotResiduals(lm_step, data$year)
+plotResiduals(lm_step, data$part)
+plotResiduals(lm_step, data$health)
+
+```
+
+### **Interpretation**:
+
+-   Both DHARMa residuals and standardised deviance residuals should exhibit no patterns (as much as it possible). However, it was not the case for both negative binomial models.
+-   The $\theta$ parameter for negative binomial model was very large, making basically equivalent to Poisson model, suggesting that $\mu \approx \sigma^2$ (Poisson distribution). In general, it seems more reasonable to fit a negative binomial regression as it will either converge to Poisson distribution or account for overdispersion to some extent.
+-   Using normal distribution yielded considerably better results: no noticeable trends / patterns in residuals.
+-   AIC was also lower for Gaussian GLM (lm) than for NB GLM.
+
+As a result, we believe that choosing a normal distribution was justified.
+
+### (c) Variable selection
+
+In this section, we attempted to summarise our findings in terms of variable importance based on AIC, cross-validation RMSE due to the fact that $Y|X$ was found to be well-approximated by a normal distribution (which makes it equivalent to maximising log likelihood) and EDA.
+
+```{r Variable selection CV, AIC, EDA, fig.width=10, fig.height=5}
+
+set.seed(111)
+
+# AIC
+lm_step <- step(lm, trace=0)
+step_top_aic <- names(lm_step$model[, !(names(lm_step$model) %in% c("mbi_ex"))])
+
+# CV (RMSE)
+data_x <- data[, !(names(data) %in% c("id", "glang", "mbi_ex"))]
+data_x <- model.matrix(~., data = data_x)[,-1]
+
+myFuncs <- lmFuncs
+myPickSizeTolerance <- function(x, metric = "RMSE", tol = 2.5, maximize=FALSE) {
+  return(caret::pickSizeTolerance(x, metric, tol, maximize))
+}
+myFuncs$selectSize <- myPickSizeTolerance
+
+ctrl <- rfeControl(functions = myFuncs, method = "cv", number = 10)
+recursive <- rfe(x = data_x, y = data$mbi_ex, 
+                 metric = "RMSE",
+                 sizes = c(5:25),
+                 data = data, rfeControl = ctrl)
+
+results_df <- data.frame(
+  Variables = recursive$results$Variables,
+  RMSE = recursive$results$RMSE
+)
+
+ggplot(results_df, aes(x = Variables, y = RMSE)) +
+  geom_line() + geom_point() +
+  labs(x = "Number of Variables", y = "RMSE") +
+  ggtitle("Variables vs. RMSE")
+
+recursive_top_cv <- predictors(recursive)
+
+```
+
+If variable was important, we used "+" to signify it.
+
+```{r Variable selection results}
+
+variables <- c("year", "sex", "part", "health", "job", "psyt", "age", 
+               "qcae_cog", "amsp", "mbi_cy", "mbi_ea", "cesd", "stud_h",
+               "jspe", "stai_t", "erec_mean", "qcae_aff")
+
+cv_rmse <- c("+", "+", "+", "+", "+", "+", "", "", "", "+", "+", "+",
+             "", "", "", "+", "")
+aic <- c("+", "", "+", "+", "", "", "+", "", "+", "+", "+", "+", "+", 
+         "", "+", "", "+")
+eda <- c("+", "+", "", "+", "", "+", "*", "", "", "+", "+", "+", "+/-",
+         "", "+", "", "+/-")
+
+data.frame(variables, cv_rmse, aic, eda)
+
+```
+
+### **Interpretation**:
+
+-   In the final model we included variables that were important according to all 3 approaches (CV, AIC, EDA): `year`, `health`, `mbi_cy`, `mbi_ea`, `cesd`.
+-   Variables that were significant only according to AIC or CV but not EDA were not included in the final model. They gave only a slight boost in predictive power, but were not statistically significant: `job`, `amsp`, `erec_mean`.
+-   Variables that were important according to 2 out of 3 metrics were included as well, but more attention was paid to them when constructing the final model: `sex`, `part`, `psyt`, `study_h`, `stai_t`, `qcae_aff`.
+-   Variable `age` had an outlier (a very old student) that made the relationship seem significant. Since AIC works with the entire dataset, it can fail to circumvent such issues. Using cross-validation in this case can be more helpful since out-of-sample error will be high due to the outlier.
+
+### (d) Addressing potential clustering issues
+
+From EDA we conducted, we observed that `glnag` was not an important predictor, primarily because the majority of students were French speaking. Nevertheless, we decided to make sure that we were not missing some crucial information by not including this variable.
+
+We decided to test two options: GLMM and GLM with a modified version of `glang`. In this case, using GLMM was done not because we were interested in treating `glang` as a random draw from the general population, but rather because we wanted to use other benefits of partial pooling and account for possible among group variation. Other approach was to modify `glnag` by grouping all languages (except French) into another group and then fitting a GLM.
+
+-   GLMM (`glang` as random effect, i.e. random intercept only):
+
+```{r MBI Exhaustion GLMM}
+
+# (1 | Group): random intercept for each group
+# (0 + X | Group): fixed intercept and random slopes, i.e. the effect of X for different group, where X is continuous
+# (1 + X | Group): random intercept and random slopes, i.e. the effect of X for different group, where X is continuous
+# You can separate (1 | Group) and (0 + X | Group); this will estimate intercept and X-effect variation, but assume that they are independent for each group
+
+# help("pvalues")
+# https://stat.ethz.ch/pipermail/r-help/2006-May/094765.html
+
+lmm <- lmer(mbi_ex ~ year + sex + part + health + psyt +
+            cesd + stud_h + stai_t + qcae_aff + 
+            mbi_cy + mbi_ea + 
+            (1 | glang), data = data)
+
+summary(lmm)
+
+```
+
+-   GLM (`glang` merged into 2 categories):
+
+```{r MBI Exhaustion LM with glang_merged}
+
+data$glang_merged <- ifelse(data$glang == 1, 1, 2)
+data$glang_merged <- as.factor(data$glang_merged)
+
+lm <- glm(mbi_ex ~ year + sex + part + health + psyt + glang_merged +
+          cesd + stud_h + stai_t + qcae_aff + 
+          mbi_cy + mbi_ea, family = gaussian, data = data)
+
+summary(lm)
+
+```
+
+```{r}
+
+# ANOVA
+anova_result <- summary(aov(mbi_ex ~ glang_merged, data = data))
+anova_pvalue <- round(anova_result[[1]]$Pr[[1]], 4)
+
+# Kruskal-Wallis Test
+kruskal_result <- kruskal.test(mbi_ex ~ glang_merged, data = data)
+kruskal_pvalue <- round(kruskal_result$p.value, 4)
+
+data.frame(anova_pvalue=anova_pvalue, kruskal_pvalue=kruskal_pvalue)
+
+```
+
+### **Interpretation**:
+
+-   The variance associated with the `glang` in the GLMM was 0, which meant that this factor wasn't important.
+-   Merging `glang` in two more general categories also did not contribute to improving the GLM.
+-   Thus, we confirmed our findings from the EDA stage.
+
+## 5.2 Results. MBI Exhaustion
+
+Fitting the final model:
+
+```{r MBI Exhaustion LM final}
+
+lm <- glm(mbi_ex ~ relevel(year, ref = 2) + sex + part + 
+          relevel(health, ref = 2) + psyt +
+          cesd + stud_h + stai_t + qcae_aff + 
+          mbi_cy + mbi_ea, family = gaussian, data = data)
+
+summary(lm)
+
+```
+
+```{r MBI Exhaustion LM final residuals, fig.width=10, fig.height=5}
+
+lm_dharma <- simulateResiduals(lm, plot = TRUE)
+autoplot(lm, which = 1:4, label.size = 3)
+
+```
+
+### **Interpretation**:
+
+-   Alpha level was taken as 0.05.
+-   Variable `year`: our exploratory data analysis revealed a noticeable trend: starting from the second year, levels of `mbi_ex` tended to decrease more or less linearly. For instance, being a sixth-year student was associated with an average decrease of 3.23 points in emotional exhaustion compared to being a second-year student. In the third year, we observed only a slight drop in 'mbi_ex,' which was not statistically significant. However, the second year, acting as the reference category, deviated from this linear trend. Freshmen exhibited lower levels of emotional exhaustion, comparable to those of third or even fourth-year students, albeit significantly higher than those of senior students.
+-   Variable `sex`: based on EDA, we concluded that `sex` was an important variable. However, when controlling for other relevant factors, our model did not find statistically significant differences between sexes, although women, on average, exhibited higher levels of emotional exhaustion than men. We chose to retain this variable as a control since it contributed to a "better: model, as indicated by improvements in AIC and CV RMSE scores.
+-   Variable `health`: similar to the trend observed for 'year,' there was a linearly decreasing relationship between `mbi_ex` and increasing levels of health satisfaction. The only exception was observed in group 1, consisting of students who were extremely unsatisfied with their health. However, due to the underrepresentation of this group, no definitive conclusions could be drawn regarding their emotional exhaustion levels. It's worth noting that the only statistically significant difference was observed in group 5, comprising students who were extremely satisfied with their health. Compared to group 2, their average levels of 'mbi_ex' decreased by 1.5 points.
+-   A cluster of variables, including depression `cesd`, anxiety `stai_t`, and cynicism `mbi_cy`, showed a positive relationship with `mbi_ex`. All variables were statistically significant. Notably, `mbi_cy` had the largest impact, with a slope of 0.34, despite having the narrowest scale, ranging from 5 to 25. Therefore, even after standardization, it would exhibit the highest impact. Cynicism measured by this scale serves as a coping mechanism for distancing oneself from exhausting job demands.
+-   Variable `stud_h` was also statistically significant and had a positive correlation with the target. However, the slope was very gradual.
+-   Last but not the least, higher academic efficiency `mbi_ea` corresponded to lower `mbi_ex`, suggesting that feelings of competence and successful achievement in one's work made a significant difference in lowering exhaustion.
+
+It was also interesting to observe that `mbi_ex` was distributed approximately normally. We would usually expect such variables to be skewed as less people normally report high level of emotional exhaustion.
+
+```{r MBI Exhaustion top 10% vs bottom 10%}
+
+top_10 <- subset(data, mbi_ex > quantile(data$mbi_ex, 0.9),
+                 select = c(numeric_cols))
+bottom_10 <- subset(data, mbi_ex < quantile(data$mbi_ex, 0.1),
+                    select = c(numeric_cols))
+
+calculate_summary_statistics <- function(df) {
+  summary_stats <- sapply(df, function(x) c(mean = mean(x),
+                                            std = sd(x)))
+  
+  summary_df <- as.data.frame(summary_stats)
+  
+  return(t(summary_df))
+}
+
+top_10_summ <- round(calculate_summary_statistics(top_10), 1)
+colnames(top_10_summ) <- c("mean_high_mbi_ex", "std_high_mbi_ex")
+bottom_10_summ <- round(calculate_summary_statistics(bottom_10), 1)
+colnames(bottom_10_summ) <- c("mean_low_mbi_ex", "std_low_mbi_ex")
+
+merged_df <- data.frame(cbind(top_10_summ, bottom_10_summ))
+as.matrix(merged_df[order(merged_df$mean_high_mbi_ex), ])
+
+```
+
+If we compare which variables significantly changed in the bottom 10% as opposed to the top 10%, the following becomes apparent:
+
+-   Students with high levels of `mbi_ex` reported being more indifferent, `mbi_cy` scores more than doubled for those students.
+-   Those students who had low levels of exhaustion spent considerably less time studying `stud_h` and yet had higher levels of academic efficiency `mbi_ea`.
+-   Moreover, students in bottom 10% reported a 5-fold decrease in depression scores `cesd`. That was the most significant difference.
+
+## 5.3 Analysis. CESD
+
+After conducting EDA, we detected signs of non-linearity, particularly in the variable `stai_t.` Consequently, we opted for a Generalized Additive Model (GAM) to test whether the effect was significantly non-linear. Additionally, since we determined that `glang` was not significant, we chose not to fit a Generalized Linear Mixed Model (GLMM).
+
+### (a) Distribution considerations. Theoretical assumptions
+
+Variable `cesd`:
+
+-   Integer-valued and bounded between 0 and 56.
+-   26 unique values.
+-   The mean value is equal to 18 and median to 16.
+-   The standard deviation is 11.5.
+-   Unconditional distribution of `cesd`:
+
+```{r CESD Exhaustion histrogram, fig.width=10, fig.height=6}
+
+ggplot(data, aes(x = cesd)) +
+  geom_histogram(binwidth = 1) +
+  labs(title = paste("Number of unique values:", length(unique(data$mbi_ex)))) +
+  xlab("mbi_ex") +
+  ylab("Count")
+
+```
+
+What we considered was utilising the Tweedie distribution due to its high flexibility. Depending on the power parameter $p$, it can span from Poisson to Gamma distributions, allowing us to accommodate integer-valued data, the presence of zeros, and other factors.
+
+### (b) Distribution considerations. Testing assumptions
+
+```{r CESD GAM}
+
+# https://stats.stackexchange.com/questions/630741/negative-binomial-for-catch-data-with-gam
+# https://stats.stackexchange.com/questions/123598/tweedie-p-parameter-interpretation
+# https://stats.stackexchange.com/questions/492726/what-is-use-of-tweedie-or-poisson-loss-objective-function-in-xgboost-and-deep-le
+
+gam_tw <- gam(cesd ~ age + stud_h + 
+              year + sex + part + job + health + psyt + 
+              jspe + qcae_cog + qcae_aff + amsp + erec_mean + 
+              mbi_ex + mbi_cy + mbi_ea +
+              s(stai_t, k = 10),
+              data = data, 
+              family = tw(link="log"), method = "REML")
+
+summary(gam_tw)
+
+```
+
+```{r CESD GAM nonlinear effect, fig.width=10, fig.height=5}
+
+plot(gam_tw)
+
+```
+
+```{r CESD GAM residuals, fig.width=10, fig.height=5}
+
+gam_tw_dharma <- simulateResiduals(gam_tw, plot = TRUE)
+
+```
+
+```{r CESD GAM residuals against each predictor, fig.width=15, fig.height=15}
+
+par(mfrow = c(5,4))
+plotResiduals(gam_tw, data$age)
+plotResiduals(gam_tw, data$stud_h)
+
+plotResiduals(gam_tw, data$jspe)
+plotResiduals(gam_tw, data$qcae_cog)
+plotResiduals(gam_tw, data$qcae_aff)
+plotResiduals(gam_tw, data$amsp)
+plotResiduals(gam_tw, data$erec_mean)
+plotResiduals(gam_tw, data$stai_t) # was addressed via including s(stai_t)
+
+plotResiduals(gam_tw, data$mbi_ex)
+plotResiduals(gam_tw, data$mbi_cy)
+plotResiduals(gam_tw, data$mbi_ea)
+
+plotResiduals(gam_tw, data$year)
+plotResiduals(gam_tw, data$sex)
+plotResiduals(gam_tw, data$part)
+plotResiduals(gam_tw, data$job)
+plotResiduals(gam_tw, data$health)
+plotResiduals(gam_tw, data$psyt)
+
+```
+
+### **Interpretation**:
+
+-   The effective degrees of freedom for `stai_t` were equal to 4.621, suggesting the presence of a statistically significant non-linear effect.
+-   Plotting DHARMa residuals against `stai_t` showed deviations from uniformity. After including `stai_t` as a non-linear effect this issue should be resolved.
+
+### (c) Variable selection
+
+Since `step()` function was not available for GAMs and using RMSE also didn't make sense for the Tweedie distributed target variable, we opted to rely on EDA as well as other metrics such as adjusted R-sq, explained deviance and AIC. For the initial model, adjusted R-sq was 0.61, deviance explained was 61.3% and AIC was 5856.
+
+Based on EDA, `age`, `erec_mean`, `qcae_cog`, `amsp`, `jspe` did not contribute to explaining `cesd`. Moreover, they also had extremely high p-values, but we decided not to rely on p-values in selecting important variables as type I errors will add up (multiple comparison problem).
+
+```{r CESD GAM truncated}
+
+gam_tw_truncated <- gam(cesd ~ stud_h + 
+                        year + sex + part + job + relevel(health, ref = 2) + 
+                        psyt + qcae_aff + 
+                        mbi_ex + mbi_cy + mbi_ea +
+                        s(stai_t, k = 10),
+                        data = data, 
+                        family = tw(link="log"), method = "REML")
+
+summary(gam_tw_truncated)
+
+```
+
+```{r CESD GAM residuals truncated, fig.width=10, fig.height=5}
+
+gam_tw_dharma <- simulateResiduals(gam_tw_truncated, plot = TRUE)
+
+```
+
+### **Interpretation**:
+
+-   After removing the aforementioned variables, adjusted R-sq became 0.61, deviance explained dropped slightly from 61.3% to 61.2% and AIC decreased from 5856 to 5847 (a very minor improvement).
+-   Although `qcae_aff` was insignificant, it helped improve the model (residual-wise).
+
+## 5.4 Results. CESD
+
+```{r CESD GAM truncated summary}
+
+summary(gam_tw_truncated)
+
+```
+
+### **Interpretation**:
+
+-   Alpha level was taken as 0.05.
+-   `year`: the coefficients for `year2` to `year6` are all negative, indicating lower `cesd` scores compared to first-year students, with all differences being statistically significant. This suggests a general decrease in `cesd` scores over time. For example, for a given sample, being a fifth-year student decreased depression symptoms by a factor of $e^{-0.18}=0.84$ compared to the reference category (`year1`).
+-   `sex`: `sex2` i.e. female has a positive coefficient (0.0783), suggesting higher `cesd` scores for this group compared to the reference sex group (male), with statistical significance. There were not enough observations in the group `sex3` to reliably detect the difference between categories.
+-   `part1`: shows a negative coefficient, suggesting lower `cesd` scores for this group compared to its reference, with statistical significance. That means that having a partner helped students battle depression.
+-   `job1`: having part time job or not did not have any statistical significance.
+-   `health`: significant effects are observed for health levels 1, 4, and 5 compared to the reference level 2, with levels 4 and 5 showing negative effects on `cesd`. This indicates students who were satisfied with their health had lower CESD scores. But just like for `mbi_ex`, there were very few students who were very dissatisfied with their health (`health1`), making it impossible to properly assess the effect for this category.
+-   `pyst` (psychological therapy): indicates a positive association with `cesd` scores, suggesting that undergoing psychological therapy is associated with higher `cesd` scores, with statistical significance. It may seem contradictory, but we pose that students who had mental health issues would more likely to go to a specialist.
+-   `qcae_aff` (QCAE Affection), `mbi_ex` (MBI Exhaustion), `mbi_cy` (MBI Cynicism), and `mbi_ea` (MBI Efficacy): of these, `mbi_ex` and `mbi_cy` show significant positive relationships with `cesd` scores, indicating that higher levels of exhaustion and cynicism are associated with higher `cesd` scores.
+-   `mbi_ea` shows a negative but marginally significant (p = 0.051974) relationship, suggesting that higher professional efficacy might be associated with slightly lower `cesd` scores. But based on the chosen alpha level, it was not significant.
+
+**Interpretation of Smooth Terms:** The smooth term for `stai_t` is statistically significant, with an effective degree of freedom (edf) of 4.642. So it means the smooth term captures a nonlinear relationship between `stai_t` and `cesd`. The non-linear effect persisted from 20 to 40, and after that it essentially became linear.
+
+# 6. Conclusion
+
+We conducted an in-depth exploratory data analysis and ensured that the models we built were well-specified, using appropriate distribution, analysing residuals, selecting important variables, and ensuring that no clustering effects would render our models invalid.
+
+It is important to keep in mind that our findings should not be simply generalised to students from other universities and/or countries, as the sample we studied was very homogeneous, namely medical students from the University of Lausanne and Lausanne University Hospital. Nevertheless, it is possible that the underlying data generation process is similar for students globally, resulting in some conclusions being relevant for other samples as well, which can be inferred based on meta-analysis of works in the same field.
+
+We found that senior students were considerably less exhausted and depressed. Additionally, academic efficiency was barely dependent on the number of hours students studied. Furthermore, those who reported spending considerably more time studying, i.e., younger students, were significantly more emotionally overextended.
+
+These findings are important as more attention should be paid to guiding younger students in their academic journey. For example, they can benefit from learning about stress management and seeking support from on-campus specialists. More emphasis should be put on long-term academic success and sustainability. Moreover, polling senior students to learn how they were able to overcome these challenges could provide valuable insights.
+
+There were also some gender differences, suggesting that females were feeling more depressed. Further analysis is required to understand why this discrepancy held true in the given sample.
+
+# References:
+
+[1] Carrard, V., Bourquin, C., Berney, S., Schlegel, K., Gaume, J., Bart, P.-A., Preisig, M., Schmid Mast, M., & Berney, A. (2022). Dataset for the paper "The relationship between medical students' empathy, mental health, and burnout: A cross-sectional study" published in Medical Teacher (2022) [Data set]. Zenodo. <https://doi.org/10.5281/zenodo.5702895>
+
+[2] Hojat, M., DeSantis, J., Shannon, S. C., Mortensen, L. H., Speicher, M. R., Bragan, L., LaNoue, M., & Calabrese, L. H. (2018, December). *The Jefferson Scale of empathy: A nationwide study of measurement properties, underlying components, latent variable structure, and national norms in medical students*. Advances in health sciences education???: theory and practice. <https://www.ncbi.nlm.nih.gov/pmc/articles/PMC6245107/>
+
+[3] Reniers, R. L., Corcoran, R., Drake, R., Shryane, N. M., & V?llm, B. A. (2011). The QCAE: A questionnaire of cognitive and affective empathy. *Journal of Personality Assessment*, *93*(1), 84-95. <https://doi.org/10.1080/00223891.2010.528484>
+
+[4] Cramer, K. M., & Gruman, J. A. (2002). The Lennox and Wolfe Revised Self-Monitoring Scale: latent structure and gender invariance. *Personality and Individual Differences*, 32(4), 627-637. [https://doi.org/10.1016/S0191-8869(01)00065-4](https://doi.org/10.1016/S0191-8869(01)00065-4){.uri}
+
+[5] Schlegel, K., Grandjean, D., & Scherer, K. R. (2012). Geneva emotion recognition test. *PsycTESTS Dataset*. <https://doi.org/10.1037/t36935-000>
+
+[6] American Psychological Association. (n.d.). *Center for Epidemiological Studies Depression (CESD)*. American Psychological Association. <https://www.apa.org/pi/about/publications/caregivers/practice-settings/assessment/tools/depression-scale>
+
+[7] American Psychological Association. (n.d.-b). *The state-trait anxiety inventory (STAI)*. American Psychological Association. <https://www.apa.org/pi/about/publications/caregivers/practice-settings/assessment/tools/trait-state>
+
+[8] Wikimedia Foundation. (2023, June 22). *Maslach Burnout Inventory*. Wikipedia. <https://en.wikipedia.org/wiki/Maslach_Burnout_Inventory#Maslach_Burnout_Inventory_Scales>
